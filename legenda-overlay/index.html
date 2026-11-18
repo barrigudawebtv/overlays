@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Overlay Logo Grande - OBS</title>
+    <style>
+        :root {
+            --laranja: #FF8C00;
+            --verde-claro: #3CB371; //MediumSeaGreen
+            --branco: #FFFFFF;
+            --sombra_texto_principal: #FFFFFF; //WHITE
+            --fonte-default:"Segoe UI Variable Display", "Segoe UI", sans-serif;;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: var(--fonte-default);
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #main-wrapper {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: stretch;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            transform: translateY(40px);
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+        }
+
+        #main-wrapper.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .caixa-topo {
+            background-color: var(--laranja);
+            padding: 20px 50px;
+            border-radius: 30px 30px 0 0;
+            border: 4px solid var(--branco);
+            border-bottom: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #texto-principal {
+            color: var(--branco);
+            font-size: 3.0rem; /* Fonte ligeiramente maior */
+            font-weight: 800;
+            margin: 0;
+            white-space: nowrap;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .caixa-base {
+            background-color: var(--verde-claro);
+            padding: 20px; /* Mais padding para a logo respirar */
+            border-radius: 0 0 30px 30px;
+            border: 4px solid var(--branco);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: -4px;
+        }
+
+        #logo-img {
+            height: 120px; /* Logo bem maior conforme solicitado */
+            width: auto;
+            max-width: 400px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-wrapper">
+        <div class="caixa-topo">
+            <h1 id="texto-principal">Aguarde alguns instantes</h1>
+        </div>
+
+        <div class="caixa-base">
+            <img id="logo-img" src="" style="display: none;">
+        </div>
+    </div>
+
+    <script>
+        const syncOverlay = () => {
+            const rawData = localStorage.getItem('obs_overlay_data');
+            if (!rawData) return;
+            const data = JSON.parse(rawData);
+            
+            document.getElementById('texto-principal').innerText = data.texto || "";
+            
+            const logo = document.getElementById('logo-img');
+            if (data.logo) {
+                logo.src = data.logo;
+                logo.style.display = 'block';
+            } else {
+                logo.style.display = 'none';
+            }
+
+            const wrapper = document.getElementById('main-wrapper');
+            data.visible ? wrapper.classList.add('visible') : wrapper.classList.remove('visible');
+        };
+
+        window.addEventListener('storage', syncOverlay);
+        syncOverlay();
+    </script>
+</body>
+</html>

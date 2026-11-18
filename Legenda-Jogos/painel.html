@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Controle v10</title>
+    <style>
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .panel { background: white; max-width: 580px; margin: 0 auto; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .timer-view { background: #000; color: #ff0; font-family: monospace; font-size: 3.5rem; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 20px; border: 3px solid #333; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        label { font-size: 0.85rem; font-weight: bold; color: #666; display: block; margin-bottom: 3px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-set { background: #4491D4; color: white; }
+        .btn-play { background: #28a745; color: white; }
+        .btn-stop { background: #dc3545; color: white; }
+        .btn-obs { background: #000; color: white; height: 60px; font-size: 1.1rem; margin-top: 20px; }
+        .score-ctrl { display: flex; gap: 5px; margin-top: 8px; }
+        .btn-add { background: #FF8C00; color: white; flex: 2; }
+        .btn-sub { background: #ddd; color: #333; flex: 1; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <div class="timer-view" id="clock-ui">00:00</div>
+    
+    <label>CONTAGEM REGRESSIVA</label>
+    <div class="grid">
+        <input type="number" id="m" placeholder="Min">
+        <input type="number" id="s" placeholder="Seg">
+    </div>
+    <button class="btn-set" onclick="app.setTimer()">DEFINIR TEMPO</button>
+
+    <div class="grid" style="margin-top:10px">
+        <button class="btn-play" onclick="app.play()">INICIAR</button>
+        <button class="btn-stop" onclick="app.stop()">PAUSAR</button>
+    </div>
+
+    <hr style="margin:20px 0; border:0; border-top:1px solid #eee">
+
+    <div class="grid">
+        <div>
+            <label>TIME CASA (AZUL)</label>
+            <input type="text" id="tA" value="TIME A" oninput="app.sync()">
+            <div class="score-ctrl">
+                <button class="btn-add" onclick="app.score('A', 1)">GOL +</button>
+                <button class="btn-sub" onclick="app.score('A', -1)">-</button>
+            </div>
+        </div>
+        <div>
+            <label>TIME VISITANTE (AMARELO)</label>
+            <input type="text" id="tB" value="TIME B" oninput="app.sync()">
+            <div class="score-ctrl">
+                <button class="btn-add" onclick="app.score('B', 1)">GOL +</button>
+                <button class="btn-sub" onclick="app.score('B', -1)">-</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div>
+            <label>STATUS / PERÍODO</label>
+            <select id="st" onchange="app.sync()">
+                <option>1º TEMPO</option><option>INTERVALO</option><option>2º TEMPO</option>
+                <option>PRORROGAÇÃO</option><option>PÊNALTIS</option><option>FINALIZADO</option>
+            </select>
+        </div>
+        <div>
+            <label>ACRÉSCIMOS (+MIN)</label>
+            <input type="number" id="ad" value="0" oninput="app.sync()">
+        </div>
+    </div>
+
+    <div style="margin-top:10px">
+        <label>SUB-LEGENDA</label>
+        <input type="text" id="inf" placeholder="Ex: Final do Torneio" oninput="app.sync()">
+    </div>
+
+    <button id="btn-obs" class="btn-obs" onclick="app.toggle()">EXIBIR NO OBS</button>
+</div>
+
+<script>
+    class SportsControllerV10 {
+        constructor() {
+            this.state = JSON.parse(localStorage.getItem('sports_v10_data')) || {
+                timeLeft: 0, running: false, visible: false,
+                status: '1º TEMPO', tA: 'TIME A', tB: 'TIME B',
+                sA: 0, sB: 0, info: '', added: 0, goalTimestamp: 0, goalSide: ''
+            };
+            this.init();
+        }
+
+        init() {
+            this.updateFields();
+            setInterval(() => this.tick(), 1000);
+        }
+
+        tick() {
+            if (this.state.running && this.state.timeLeft > 0) {
+                this.state.timeLeft--;
+                this.refresh();
+                this.save();
+            } else if (this.state.timeLeft === 0 && this.state.running) {
+                this.state.running = false;
+                this.save();
+            }
+        }
+
+        setTimer() {
+            const m = parseInt(document.getElementById('m').value) || 0;
+            const s = parseInt(document.getElementById('s').value) || 0;
+            this.state.timeLeft = (m * 60) + s;
+            this.state.running = false;
+            this.refresh();
+            this.save();
+        }
+
+        play() { this.state.running = true; this.save(); }
+        stop() { this.state.running = false; this.save(); }
+
+        score(side, v) { 
+            const key = side === 'A' ? 'sA' : 'sB';
+            this.state[key] = Math.max(0, this.state[key] + v);
+            
+            if (v > 0) {
+                this.state.goalTimestamp = Date.now();
+                this.state.goalSide = side;
+            }
+            
+            this.save(); 
+            this.refresh(); 
+        }
+        
+        sync() {
+            this.state.status = document.getElementById('st').value;
+            this.state.tA = document.getElementById('tA').value;
+            this.state.tB = document.getElementById('tB').value;
+            this.state.info = document.getElementById('inf').value;
+            this.state.added = parseInt(document.getElementById('ad').value) || 0;
+            this.save();
+        }
+
+        toggle() { this.state.visible = !this.state.visible; this.save(); this.refresh(); }
+        save() { localStorage.setItem('sports_v10_data', JSON.stringify(this.state)); }
+
+        refresh() {
+            const m = Math.floor(this.state.timeLeft/60).toString().padStart(2,'0');
+            const s = (this.state.timeLeft%60).toString().padStart(2,'0');
+            document.getElementById('clock-ui').innerText = `${m}:${s}`;
+            const btn = document.getElementById('btn-obs');
+            btn.innerText = this.state.visible ? "OCULTAR NO OBS" : "EXIBIR NO OBS";
+            btn.style.background = this.state.visible ? "#dc3545" : "#000";
+        }
+
+        updateFields() {
+            document.getElementById('st').value = this.state.status;
+            document.getElementById('tA').value = this.state.tA;
+            document.getElementById('tB').value = this.state.tB;
+            document.getElementById('ad').value = this.state.added;
+            document.getElementById('inf').value = this.state.info;
+            this.refresh();
+        }
+    }
+    const app = new SportsControllerV10();
+</script>
+</body>
+</html>

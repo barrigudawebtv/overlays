@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel v11 - Master Control</title>
+    <style>
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .panel { background: white; max-width: 600px; margin: 0 auto; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .timer-view { background: #000; color: #ff0; font-family: monospace; font-size: 3.5rem; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        label { font-size: 0.8rem; font-weight: bold; color: #666; display: block; margin-bottom: 5px; }
+        .logo-box { background: #f8f9fa; border: 1px dashed #ccc; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .preview { height: 35px; object-fit: contain; display: block; margin: 5px auto; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-blue { background: #4491D4; color: white; }
+        .btn-green { background: #28a745; color: white; }
+        .btn-red { background: #dc3545; color: white; }
+        .btn-obs { background: #000; color: white; margin-top: 20px; }
+        .score-row { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-goal { background: #FF8C00; color: white; flex: 2; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <div class="timer-view" id="master-clock">00:00</div>
+    
+    <label>TEMPO ALVO DO JOGO (MINUTOS)</label>
+    <div class="grid">
+        <input type="number" id="target" value="45">
+        <button class="btn-blue" onclick="master.resetTimer()">DEFINIR E ZERAR</button>
+    </div>
+
+    <div class="grid">
+        <button class="btn-green" onclick="master.start()">INICIAR CONTAGEM</button>
+        <button class="btn-red" onclick="master.stop()">PAUSAR</button>
+    </div>
+
+    <hr style="margin:20px 0; border:0; border-top:1px solid #eee">
+
+    <div class="grid">
+        <div>
+            <label>TIME CASA</label>
+            <input type="text" id="tA" value="TIME A" oninput="master.sync()">
+            <div class="logo-box">
+                <img id="preA" class="preview" style="display:none">
+                <input type="file" accept="image/png" onchange="master.upload(event, 'A')" style="font-size:10px">
+            </div>
+            <div class="score-row">
+                <button class="btn-goal" onclick="master.goal('A', 1)">GOL +</button>
+                <button onclick="master.goal('A', -1)">-</button>
+            </div>
+        </div>
+        <div>
+            <label>TIME VISITANTE</label>
+            <input type="text" id="tB" value="TIME B" oninput="master.sync()">
+            <div class="logo-box">
+                <img id="preB" class="preview" style="display:none">
+                <input type="file" accept="image/png" onchange="master.upload(event, 'B')" style="font-size:10px">
+            </div>
+            <div class="score-row">
+                <button class="btn-goal" onclick="master.goal('B', 1)">GOL +</button>
+                <button onclick="master.goal('B', -1)">-</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div>
+            <label>PERÍODO</label>
+            <select id="st" onchange="master.sync()">
+                <option>1º TEMPO</option><option>INTERVALO</option><option>2º TEMPO</option>
+            </select>
+        </div>
+        <div>
+            <label>ACRÉSCIMO (+MIN)</label>
+            <input type="number" id="ad" value="0" oninput="master.sync()">
+        </div>
+    </div>
+
+    <label>DESCRIÇÃO / SUB-LEGENDA</label>
+    <input type="text" id="inf" placeholder="Ex: Final do Campeonato" oninput="master.sync()">
+
+    <button id="btn-visible" class="btn-obs" onclick="master.toggle()">EXIBIR NO OBS</button>
+</div>
+
+<script>
+    /**
+     * CLASSE MasterController
+     * Padrão State: Controla o cronômetro progressivo e a sincronia exata.
+     */
+    class MasterController {
+        constructor() {
+            const saved = JSON.parse(localStorage.getItem('sports_v11_sync'));
+            this.state = saved || {
+                currentTime: 0, 
+                limitTime: 2700, 
+                running: false, 
+                visible: false,
+                status: '1º TEMPO', 
+                tA: 'TIME A', 
+                tB: 'TIME B',
+                sA: 0, sB: 0, 
+                added: 0, 
+                info: '', // Campo de descrição
+                logoA: null, 
+                logoB: null,
+                goalTimestamp: 0, 
+                goalSide: ''
+            };
+            this.init();
+        }
+
+        init() {
+            this.updateForm();
+            // Motor do relógio: roda no painel para garantir sincronia exata
+            setInterval(() => this.ticker(), 1000);
+        }
+
+        ticker() {
+            if (this.state.running) {
+                const realLimit = (parseInt(this.state.limitTime) || 0) + (parseInt(this.state.added || 0) * 60);
+                if (this.state.currentTime < realLimit) {
+                    this.state.currentTime++;
+                    this.broadcast();
+                    this.refreshClock();
+                }
+            }
+        }
+
+        resetTimer() {
+            const min = parseInt(document.getElementById('target').value) || 0;
+            this.state.limitTime = min * 60;
+            this.state.currentTime = 0; // Começa do zero (Progressivo)
+            this.state.running = false;
+            this.broadcast();
+            this.refreshClock();
+        }
+
+        upload(e, side) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                this.state[`logo${side}`] = ev.target.result;
+                this.broadcast();
+                this.updateForm();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        goal(side, v) {
+            const k = `s${side}`;
+            this.state[k] = Math.max(0, this.state[k] + v);
+            if (v > 0) { 
+                this.state.goalTimestamp = Date.now(); 
+                this.state.goalSide = side; 
+            }
+            this.broadcast();
+        }
+
+        // Sincroniza todos os campos, incluindo a DESCRIÇÃO (info)
+        sync() {
+            this.state.tA = document.getElementById('tA').value;
+            this.state.tB = document.getElementById('tB').value;
+            this.state.status = document.getElementById('st').value;
+            this.state.added = parseInt(document.getElementById('ad').value) || 0;
+            this.state.info = document.getElementById('inf').value;
+            this.broadcast();
+        }
+
+        start() { this.state.running = true; this.broadcast(); }
+        stop() { this.state.running = false; this.broadcast(); }
+        toggle() { this.state.visible = !this.state.visible; this.broadcast(); this.updateForm(); }
+
+        broadcast() {
+            localStorage.setItem('sports_v11_sync', JSON.stringify(this.state));
+        }
+
+        refreshClock() {
+            const s = this.state.currentTime;
+            const m = Math.floor(s / 60).toString().padStart(2, '0');
+            const sec = (s % 60).toString().padStart(2, '0');
+            document.getElementById('master-clock').innerText = `${m}:${sec}`;
+        }
+
+        updateForm() {
+            document.getElementById('tA').value = this.state.tA;
+            document.getElementById('tB').value = this.state.tB;
+            document.getElementById('st').value = this.state.status;
+            document.getElementById('ad').value = this.state.added;
+            document.getElementById('inf').value = this.state.info || "";
+            
+            if(this.state.logoA) { document.getElementById('preA').src = this.state.logoA; document.getElementById('preA').style.display='block'; }
+            if(this.state.logoB) { document.getElementById('preB').src = this.state.logoB; document.getElementById('preB').style.display='block'; }
+            
+            const btn = document.getElementById('btn-visible');
+            btn.innerText = this.state.visible ? "OCULTAR NO OBS" : "EXIBIR NO OBS";
+            btn.style.background = this.state.visible ? "#dc3545" : "#000";
+            this.refreshClock();
+        }
+    }
+    const master = new MasterController();
+</script>
+</body>
+</html>

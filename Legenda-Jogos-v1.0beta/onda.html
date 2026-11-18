@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animação de Ondas Sonoras</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .sound-wave-container {
+            width: 70vw;
+            max-width: 70%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(1px, 0.18vw, 4px);
+            padding: 0;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            overflow: hidden;
+        }
+
+        .bar {
+            flex: 1 1 auto;
+            min-width: 1px;
+            max-width: 5px;
+            height: 10px;
+            background: linear-gradient(to top, darkgreen, gold);
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sound-wave-container" id="waveContainer">
+        <!-- As barras serão geradas dinamicamente pelo JavaScript -->
+    </div>
+
+    <script>
+        const container = document.getElementById('waveContainer');
+        const numberOfBars = 100; // Quantidade de barras na onda
+        const bars = [];
+
+        // Cria as barras dinamicamente
+        for (let i = 0; i < numberOfBars; i++) {
+            const bar = document.createElement('div');
+            bar.classList.add('bar');
+            
+            // Aplica um degradê de cores ligeiramente diferente para cada barra (opcional)
+            bar.style.background = `linear-gradient(to top, darkgreen, gold)`;
+            
+            container.appendChild(bar);
+            bars.push(bar);
+        }
+
+        // Função que simula o efeito do som mudando a altura das barras
+        function animateWave() {
+            bars.forEach(bar => {
+                // Gera uma altura aleatória proporcional ao container
+                const maxHeight = Math.min(120, container.clientHeight * 0.85);
+                const randomHeight = Math.floor(Math.random() * maxHeight) + 8;
+                bar.style.height = `${randomHeight}px`;
+            });
+
+            // Executa a função repetidamente a cada 100 milissegundos
+            setTimeout(animateWave, 100);
+        }
+
+        // Inicia a animação
+        animateWave();
+    </script>
+
+</body>
+</html>

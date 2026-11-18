@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Overlay Esportivo v10 - GOL no Nome</title>
+    <style>
+        :root {
+            --laranja: #FF8C00;
+            --azul-celestial: #4491D4;
+            --verde-claro: #90EE90;
+            --branco: #FFFFFF;
+            --amarelo: #FFFF00;
+            --preto-transp: rgba(0, 0, 0, 0.85);
+            --fonte: 'Impact', 'Charcoal', sans-serif;
+        }
+
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background: transparent; font-family: var(--fonte); 
+            text-transform: uppercase; 
+        }
+
+        #scoreboard {
+            position: absolute; top: 30px; left: 50px;
+            display: flex; align-items: stretch;
+            opacity: 0; transform: translateY(-20px);
+            transition: all 0.5s ease-out;
+        }
+        #scoreboard.visible { opacity: 1; transform: translateY(0); }
+
+        /* Status (Esquerda) */
+        .status-box {
+            background-color: var(--preto-transp);
+            color: var(--amarelo);
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 20px; min-width: 120px;
+            border-radius: 15px 0 0 15px;
+            font-size: 1.6rem; z-index: 3;
+        }
+
+        .info-stack { display: flex; flex-direction: column; gap: 0; }
+
+        .main-bar {
+            display: flex; align-items: stretch;
+            border-radius: 0 15px 0 0;
+            overflow: hidden;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+        }
+
+        /* Estrutura dos Times com suporte a animação interna */
+        .team-container {
+            position: relative;
+            min-width: 180px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .team-name { font-size: 2.2rem; transition: transform 0.3s, opacity 0.3s; }
+        
+        .goal-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: inherit; /* Usa a cor do time */
+            filter: brightness(1.2);
+        }
+
+        /* Estilos específicos dos Times */
+        .t-a { background-color: var(--azul-celestial); color: var(--branco); }
+        .t-b { background-color: var(--amarelo); color: #000; }
+
+        /* Gatilho da Animação */
+        .animating .team-name { opacity: 0; transform: scale(0.5); }
+        .animating .goal-overlay { transform: translateY(0); animation: pulse 0.5s infinite alternate; }
+
+        @keyframes pulse {
+            from { transform: scale(1); filter: brightness(1.2); }
+            to { transform: scale(1.1); filter: brightness(1.5); }
+        }
+
+        .score-box {
+            background-color: var(--laranja);
+            color: var(--branco);
+            padding: 0 25px; font-size: 2.5rem;
+            display: flex; align-items: center;
+            border-left: 2px solid rgba(255,255,255,0.2);
+            border-right: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .timer-box { background-color: var(--preto-transp); color: var(--branco); padding: 8px 25px; display: flex; align-items: center; min-width: 110px; justify-content: center; font-size: 2.2rem; }
+        .added-txt { color: var(--amarelo); font-size: 1.3rem; margin-left: 5px; }
+
+        .sub-bar {
+            background-color: var(--verde-claro);
+            color: #1a4a1a;
+            padding: 4px 25px; font-size: 1.25rem; font-weight: bold;
+            border-radius: 0 0 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="scoreboard">
+        <div id="ui-status" class="status-box">1º TEMPO</div>
+        <div class="info-stack">
+            <div class="main-bar">
+                <div id="cont-tA" class="team-container t-a">
+                    <span id="ui-tA" class="team-name">TIME A</span>
+                    <div class="goal-overlay">GOL!!!</div>
+                </div>
+
+                <div id="ui-score" class="score-box">0 X 0</div>
+
+                <div id="cont-tB" class="team-container t-b">
+                    <span id="ui-tB" class="team-name">TIME B</span>
+                    <div class="goal-overlay">GOL!!!</div>
+                </div>
+
+                <div class="timer-box">
+                    <span id="ui-clock">00:00</span>
+                    <span id="ui-added" class="added-txt"></span>
+                </div>
+            </div>
+            <div id="ui-sub" class="sub-bar">--</div>
+        </div>
+    </div>
+
+    <script>
+        class SportsOverlayV10 {
+            constructor() {
+                this.lastGoalTime = 0;
+                this.init();
+            }
+
+            init() {
+                window.addEventListener('storage', () => this.sync());
+                this.sync();
+                setInterval(() => this.tick(), 1000);
+            }
+
+            fmt(s) {
+                return Math.floor(s/60).toString().padStart(2,'0') + ":" + (s%60).toString().padStart(2,'0');
+            }
+
+            tick() {
+                const data = JSON.parse(localStorage.getItem('sports_v10_data'));
+                if (data && data.running && data.timeLeft > 0) {
+                    data.timeLeft--;
+                    document.getElementById('ui-clock').innerText = this.fmt(data.timeLeft);
+                }
+            }
+
+            animateGoal(side) {
+                const container = document.getElementById(`cont-t${side}`);
+                container.classList.add('animating');
+                setTimeout(() => container.classList.remove('animating'), 4000);
+            }
+
+            sync() {
+                const data = JSON.parse(localStorage.getItem('sports_v10_data'));
+                if (!data) return;
+
+                // Checa evento de gol
+                if (data.goalTimestamp && data.goalTimestamp !== this.lastGoalTime) {
+                    this.animateGoal(data.goalSide);
+                    this.lastGoalTime = data.goalTimestamp;
+                }
+
+                document.getElementById('ui-status').innerText = data.status;
+                document.getElementById('ui-tA').innerText = data.tA;
+                document.getElementById('ui-tB').innerText = data.tB;
+                document.getElementById('ui-score').innerText = `${data.sA} X ${data.sB}`;
+                document.getElementById('ui-sub').innerText = data.info;
+                document.getElementById('ui-clock').innerText = this.fmt(data.timeLeft);
+                document.getElementById('ui-added').innerText = data.added > 0 ? `+${data.added}` : "";
+
+                document.getElementById('scoreboard').className = data.visible ? 'visible' : '';
+            }
+        }
+        new SportsOverlayV10();
+    </script>
+</body>
+</html>

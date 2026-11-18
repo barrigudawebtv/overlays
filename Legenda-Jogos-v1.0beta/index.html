@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Overlay Esportivo v11 - Master</title>
+    <style>
+        :root {
+            --laranja: #FF8C00; --azul-celestial: #4491D4; --verde-claro: #90EE90;
+            --branco: #FFFFFF; --amarelo: #FFFF00; --preto-transp: rgba(0, 0, 0, 0.85);
+            --fonte: 'Impact', 'Charcoal', sans-serif;
+        }
+
+        body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: var(--fonte); text-transform: uppercase; }
+
+        /* Container principal com animação de entrada */
+        #scoreboard {
+            position: absolute; top: 30px; left: 50px;
+            display: flex; align-items: stretch;
+            opacity: 0; transform: translateY(-20px);
+            transition: all 0.5s ease-out;
+        }
+        #scoreboard.visible { opacity: 1; transform: translateY(0); }
+
+        /* Caixa de Status (ex: 1º Tempo) */
+        .status-box {
+            background-color: var(--preto-transp); color: var(--amarelo);
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 20px; min-width: 120px; border-radius: 15px 0 0 15px;
+            font-size: 1.6rem; z-index: 3;
+        }
+
+        .info-stack { display: flex; flex-direction: column; }
+
+        /* Barra principal com logos, nomes e placar */
+        .main-bar {
+            display: flex; align-items: stretch;
+            border-radius: 0 15px 0 0; overflow: hidden;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+        }
+
+        .team-container {
+            position: relative; min-width: 200px;
+            display: flex; align-items: center; padding: 0 15px;
+        }
+        
+        /* Imagem da Logo PNG */
+        .team-logo { width: 45px; height: 45px; object-fit: contain; margin: 0 10px; }
+        .team-name { font-size: 2.2rem; flex-grow: 1; text-align: center; }
+        
+        /* Overlay de GOL que sobe sobre o nome do time */
+        .goal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; transform: translateY(100%);
+            transition: transform 0.3s; background: inherit; z-index: 5;
+        }
+
+        .t-a { background-color: var(--azul-celestial); color: var(--branco); }
+        .t-b { background-color: var(--amarelo); color: #000; flex-direction: row-reverse; }
+
+        .animating .goal-overlay { transform: translateY(0); }
+
+        /* Caixa do Placar Central */
+        .score-box {
+            background-color: var(--laranja); color: var(--branco);
+            padding: 0 25px; font-size: 2.5rem; display: flex; align-items: center;
+            border-left: 2px solid rgba(255,255,255,0.2); border-right: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* Relógio e Acréscimo */
+        .timer-box { 
+            background-color: var(--preto-transp); color: var(--branco); 
+            padding: 8px 20px; display: flex; align-items: center; 
+            min-width: 110px; justify-content: center; font-size: 2.2rem; 
+        }
+        .added-txt { color: var(--amarelo); font-size: 1.5rem; margin-left: 8px; font-weight: bold; }
+
+        /* Barra de Descrição (Sub-legenda) */
+        .sub-bar {
+            background-color: var(--verde-claro); color: #1a4a1a;
+            padding: 4px 25px; font-size: 1.25rem; font-weight: bold; border-radius: 0 0 15px 0;
+            min-height: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="scoreboard">
+        <div id="ui-status" class="status-box">--</div>
+        <div class="info-stack">
+            <div class="main-bar">
+                <div id="cont-tA" class="team-container t-a">
+                    <img id="img-logoA" class="team-logo" style="display:none">
+                    <span id="ui-tA" class="team-name">--</span>
+                    <div class="goal-overlay">GOL!!!</div>
+                </div>
+                <div id="ui-score" class="score-box">0 X 0</div>
+                <div id="cont-tB" class="team-container t-b">
+                    <img id="img-logoB" class="team-logo" style="display:none">
+                    <span id="ui-tB" class="team-name">--</span>
+                    <div class="goal-overlay">GOL!!!</div>
+                </div>
+                <div class="timer-box">
+                    <span id="ui-clock">00:00</span>
+                    <span id="ui-added" class="added-txt"></span>
+                </div>
+            </div>
+            <div id="ui-sub" class="sub-bar">--</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * CLASSE OverlayMirror
+         * Segue o padrão Observer para refletir o estado do Painel
+         */
+        class OverlayMirror {
+            constructor() {
+                this.lastGoalTime = 0;
+                this.init();
+            }
+
+            init() {
+                // Escuta atualizações do localStorage
+                window.addEventListener('storage', () => this.draw());
+                this.draw();
+            }
+
+            // Formata segundos para evitar erro NaN
+            format(s) {
+                const total = parseInt(s) || 0;
+                const min = Math.floor(total / 60).toString().padStart(2, '0');
+                const sec = (total % 60).toString().padStart(2, '0');
+                return `${min}:${sec}`;
+            }
+
+            draw() {
+                const data = JSON.parse(localStorage.getItem('sports_v11_sync'));
+                if (!data) return;
+
+                // Sincronia de textos
+                document.getElementById('ui-status').innerText = data.status;
+                document.getElementById('ui-tA').innerText = data.tA;
+                document.getElementById('ui-tB').innerText = data.tB;
+                document.getElementById('ui-score').innerText = `${data.sA} X ${data.sB}`;
+                
+                // DESCRIÇÃO REINCLUÍDA
+                document.getElementById('ui-sub').innerText = data.info || "--";
+                
+                // SINCRONIA EXATA DO RELÓGIO E ACRÉSCIMO
+                document.getElementById('ui-clock').innerText = this.format(data.currentTime);
+                document.getElementById('ui-added').innerText = data.added > 0 ? `+${data.added}` : "";
+
+                // Logos
+                this.updateImg('img-logoA', data.logoA);
+                this.updateImg('img-logoB', data.logoB);
+
+                // Disparo de animação de gol
+                if (data.goalTimestamp && data.goalTimestamp !== this.lastGoalTime) {
+                    this.animate(data.goalSide);
+                    this.lastGoalTime = data.goalTimestamp;
+                }
+
+                document.getElementById('scoreboard').className = data.visible ? 'visible' : '';
+            }
+
+            updateImg(id, src) {
+                const el = document.getElementById(id);
+                if (src) { el.src = src; el.style.display = 'block'; }
+                else { el.style.display = 'none'; }
+            }
+
+            animate(side) {
+                const el = document.getElementById(`cont-t${side}`);
+                el.classList.add('animating');
+                setTimeout(() => el.classList.remove('animating'), 4000);
+            }
+        }
+        new OverlayMirror();
+    </script>
+</body>
+</html>

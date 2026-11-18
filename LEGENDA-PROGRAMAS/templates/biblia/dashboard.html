@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Controle Bíblico</title>
+    <style>
+        :root { --primary: #007bff; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 40px; }
+        .control-panel { background: var(--card); width: 100%; max-width: 450px; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; font-weight: 300; letter-spacing: 1px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #888; }
+        select, input { width: 100%; background: #2a2a2a; border: 1px solid #444; padding: 12px; border-radius: 8px; color: white; margin-bottom: 20px; transition: 0.3s; }
+        select:focus, input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(0,123,255,0.25); }
+        .btn-group { display: grid; gap: 10px; }
+        button { padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .btn-send { background: var(--primary); color: white; }
+        .btn-hide { background: #cf6679; color: #000; }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h2>BIBLIA OVERLAY</h2>
+        <label>Selecione o Livro</label>
+        <select id="livroSelect"></select>
+        
+        <label>Capítulo</label>
+        <input type="number" id="capituloInput" placeholder="Ex: 1">
+        
+        <label>Versículos (Intervalo ou Múltiplos)</label>
+        <input type="text" id="versiculoInput" placeholder="Ex: 1-9 ou 1, 6, 10">
+        
+        <div class="btn-group">
+            <button class="btn-send" onclick="enviar()">Exibir Versículos</button>
+            <button class="btn-hide" onclick="toggleStatus(false)">Ocultar Overlay</button>
+        </div>
+    </div>
+
+    <script>
+        // Carregamento dinâmico via API
+        fetch('/api/livros').then(r => r.json()).then(data => {
+            const select = document.getElementById('livroSelect');
+            select.innerHTML = data.map(l => `<option value="${l}">${l}</option>`).join('');
+        });
+
+        async function enviar() {
+            const livro = document.getElementById('livroSelect').value;
+            const cap = document.getElementById('capituloInput').value;
+            const verRaw = document.getElementById('versiculoInput').value;
+
+            const res = await fetch(`/api/conteudo/${livro}/${cap}`);
+            const versiculos = await res.json();
+
+            let textoProcessado = "";
+            
+            // Lógica original mantida e depurada
+            if (verRaw.includes('-')) {
+                const [inicio, fim] = verRaw.split('-').map(Number);
+                textoProcessado = versiculos.filter(v => v.versiculo >= inicio && v.versiculo <= fim)
+                                            .map(v => `<sup>${v.versiculo}</sup> ${v.texto}`).join(' ');
+            } else if (verRaw.includes(',')) {
+                const lista = verRaw.split(',').map(n => parseInt(n.trim()));
+                textoProcessado = versiculos.filter(v => lista.includes(v.versiculo))
+                                            .map(v => `<sup>${v.versiculo}</sup> ${v.texto}`).join(' ');
+            } else {
+                const v = versiculos.find(v => v.versiculo == verRaw);
+                textoProcessado = v ? v.texto : "Versículo não encontrado";
+            }
+
+            const payload = {
+                titulo: `${livro} ${cap}`,
+                versiculos: verRaw,
+                texto: textoProcessado,
+                visible: true,
+                key: Date.now()
+            };
+
+            localStorage.setItem('bible_overlay', JSON.stringify(payload));
+        }
+
+        function toggleStatus(status) {
+            let data = JSON.parse(localStorage.getItem('bible_overlay') || '{}');
+            data.visible = status;
+            localStorage.setItem('bible_overlay', JSON.stringify(data));
+        }
+    </script>
+</body>
+</html>

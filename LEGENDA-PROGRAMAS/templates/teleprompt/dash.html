@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Painel Python</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; gap: 20px; padding: 20px; }
+        textarea { flex: 1; height: 80vh; background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 8px; font-family: monospace; }
+        .controls { width: 300px; display: flex; flex-direction: column; gap: 15px; }
+        button { padding: 15px; cursor: pointer; border: none; font-weight: bold; border-radius: 5px; }
+        .start { background: #2ecc71; } .stop { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <textarea id="texto" oninput="enviar()"><h1>TÍTULO DESTACADO</h1>\nSeu texto aqui...</textarea>
+    
+    <div class="controls">
+        <button class="start" onclick="comando('start')">INICIAR</button>
+        <button class="stop" onclick="comando('stop')">PAUSAR</button>
+        <button onclick="comando('reset')">RESETAR</button>
+        <label>Velocidade: <input type="range" id="vel" min="0" max="10" step="0.5" value="2" oninput="enviar()"></label>
+        <label>Fonte: <input type="range" id="font" min="30" max="120" value="60" oninput="enviar()"></label>
+    </div>
+
+    <script>
+        const socket = io();
+        function enviar() {
+            socket.emit('sincronizar', {
+                texto: document.getElementById('texto').value.replace(/\n/g, '<br>'),
+                velocidade: document.getElementById('vel').value,
+                fonte: document.getElementById('font').value
+            });
+        }
+        function comando(c) { socket.emit('comando', { acao: c }); }
+    </script>
+</body>
+</html>

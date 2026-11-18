@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teleprompter Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { background: #000; color: #fff; overflow: hidden; font-family: sans-serif; text-align: center; }
+        #content { position: absolute; width: 100%; top: 40vh; will-change: transform; }
+        h1 { color: #ffff00; font-size: 1.6em; border-bottom: 3px solid #ffff00; display: inline-block; margin-bottom: 50px; }
+        #guide { position: fixed; top: 50%; width: 100%; height: 2px; background: rgba(0,255,0,0.3); z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="guide"></div>
+    <div id="content"></div>
+
+    <script>
+        const socket = io();
+        let y = 0, vel = 2, movendo = false;
+        const cont = document.getElementById('content');
+
+        socket.on('atualizar_prompter', (data) => {
+            cont.innerHTML = data.texto;
+            cont.style.fontSize = data.fonte + 'px';
+            vel = parseFloat(data.velocidade);
+        });
+
+        socket.on('executar_comando', (data) => {
+            if(data.acao === 'start') movendo = true;
+            if(data.acao === 'stop') movendo = false;
+            if(data.acao === 'reset') { movendo = false; y = 0; cont.style.transform = `translateY(0px)`; }
+            if(movendo) animate();
+        });
+
+        function animate() {
+            if(!movendo) return;
+            y -= vel * 0.2;
+            cont.style.transform = `translateY(${y}px)`;
+            requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <style>
+
+        :root{
+            --texto:#000;
+            --box:  rgba(134, 172, 65, 0.9);
+            --livro:rgba(0, 0, 0, 1); ;
+        }
+        body { margin: 0; overflow: hidden; height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        
+        #bible-box {
+            position: absolute;
+            right: -600px; /* Escondido */
+            top: 15%;
+            width: 480px;
+            max-height: 70vh; /* Limite de altura */
+            background: var(--box);
+            border-right: 12px solid #007bff;
+            padding: 30px;
+            font-weight: bolder;
+            color: var(--texto);
+            transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            opacity: 1;
+            box-shadow: -15px 0 35px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            border-radius: 20px 0 0 20px;
+        }
+
+        #bible-box.active {
+            right: 0;
+            opacity: 1;
+        }
+
+        h1 { 
+            margin: 0 0 15px 0; 
+            font-size: 26px;
+            font-weight:bolder;
+            color: var(--livro); 
+            text-transform: uppercase; 
+            border-bottom: 2px solid #333;
+            flex-shrink: 0; /* Não esmaga o título */
+        }
+
+        #content { 
+            font-size: 22px; 
+            line-height: 1.5; 
+            margin: 0; 
+            font-style: italic;
+            overflow-y: auto; /* Barra de rolagem */
+            padding-right: 10px;
+        }
+
+        /* Estilização da Scrollbar (IHC) */
+        #content::-webkit-scrollbar { width: 6px; }
+        #content::-webkit-scrollbar-thumb { background: #007bff; border-radius: 10px; }
+        #content::-webkit-scrollbar-track { background: transparent; }
+
+        sup { font-size: 14px; color: #007bff; margin-right: 4px; font-weight: bold; }
+        
+        .referencia { 
+            display: block; 
+            margin-top: 20px; 
+            text-align: right; 
+            font-weight: bold; 
+            opacity: 0.6; 
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bible-box">
+        <h1 id="title"></h1>
+        <div id="content"></div>
+        <span class="referencia" id="ref"></span>
+    </div>
+
+    <script>
+        function update() {
+            const data = JSON.parse(localStorage.getItem('bible_overlay'));
+            const box = document.getElementById('bible-box');
+            const contentArea = document.getElementById('content');
+            
+            if (data && data.visible) {
+                // Depuração: Se o título mudou, reseta o scroll para o topo
+                if (document.getElementById('title').innerText !== data.titulo) {
+                    contentArea.scrollTop = 0;
+                }
+
+                document.getElementById('title').innerText = data.titulo;
+                contentArea.innerHTML = data.texto;
+                document.getElementById('ref').innerText = `${data.titulo}:${data.versiculos}`;
+                box.classList.add('active');
+            } else {
+                box.classList.remove('active');
+            }
+        }
+
+        window.addEventListener('storage', update);
+        setInterval(update, 500);
+    </script>
+</body>
+</html>

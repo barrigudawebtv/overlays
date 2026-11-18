@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎥Barriguda Web TV</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.jpg') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <img id="logo-sistema" src="{{ url_for('static', filename='logo.jpg') }}" style="width:64px; border-radius: 5px;" alt="Logo Sistema">
+                <h2 style="font-size:14px; font-weight:bolder; margin-top: 10px;"><b>Barriguda Web TV</b></h2>
+            </div>
+            <nav>
+                <ul>
+                    <li onclick="app.navegar('dashboard')" class="active" id="nav-dash">
+                        <i class="fas fa-table"></i> Grade TV
+                    </li>
+                    <li onclick="app.navegar('cadastro')" id="nav-cad">
+                        <i class="fas fa-plus-circle"></i> Novo Programa
+                    </li>
+                    <li onclick="app.gerarRelatorio()" id="nav-rel">
+                        <i class="fas fa-file-pdf"></i> Gerar PDF
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h2><i class="fas fa-tv"></i> Sistema de Grade - EDUCOMUNICADOR</h2>
+                <div class="avatar">
+                    <span>Área Administrativa</span>
+                </div>
+            </header>
+
+            <section id="tela-dashboard" class="tela active">
+                <div class="card">
+                    <h3>Programação Atual</h3>
+                    <div style="overflow-x:auto;">
+                        <table id="tabelaProgramas">
+                            <thead>
+                                <tr>
+                                    <th>Horário</th>
+                                    <th>Artista</th>
+                                    <th>Programa</th>
+                                    <th>Categorias</th>
+                                    <th>Frequência</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tela-cadastro" class="tela" style="display:none;">
+                <div class="card form-card">
+                    <h3><i class="fas fa-edit"></i> Cadastrar / Editar Programa</h3>
+                    <form id="formPrograma">
+                        <input type="hidden" id="idPrograma">
+                        
+                        <div class="form-group">
+                            <label>Horário</label>
+                            <input type="time" id="horario" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nome Artístico</label>
+                            <input type="text" id="nomeArtistico" required placeholder="Ex: Sônia Carneiro">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nome do Programa</label>
+                            <input type="text" id="nomePrograma" required placeholder="Ex: Direito de Saber">
+                        </div>
+
+                        <div class="form-group checkbox-alerta-wrapper">
+                            <label class="label-alerta">
+                                <input type="checkbox" id="alerta"> 
+                                <i class="fas fa-exclamation-triangle"></i> Marcar como Programa de Atenção Especial
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categorias</label>
+                            <div class="categorias-grid" style="display: flex; gap: 15px; flex-wrap: wrap; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                                <label><input type="checkbox" value="Educativo"> Educativo</label>
+                                <label><input type="checkbox" value="Religioso"> Religioso</label>
+                                <label><input type="checkbox" value="Entrevistas"> Entrevistas</label>
+                                <label><input type="checkbox" value="PodCast"> PodCast</label>
+                                <label><input type="checkbox" value="Informativo"> Informativo</label>
+                                <label><input type="checkbox" value="Debate"> Debate</label>
+                                <label><input type="checkbox" value="Entretenimento"> Entretenimento</label>
+                                <label><input type="checkbox" value="Música"> Música</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Frequência</label>
+                            <select id="frequencia" required>
+                                <option value="DIÁRIO">DIÁRIO</option>
+                                <option value="SEMANAL" selected>SEMANAL</option>
+                                <option value="QUINZENAL">QUINZENAL</option>
+                                <option value="MENSAL">MENSAL</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Dias de Exibição</label>
+                            <div class="dias-grid" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label><input type="checkbox" value="Seg"> Seg</label>
+                                <label><input type="checkbox" value="Ter"> Ter</label>
+                                <label><input type="checkbox" value="Qua"> Qua</label>
+                                <label><input type="checkbox" value="Qui"> Qui</label>
+                                <label><input type="checkbox" value="Sex"> Sex</label>
+                                <label><input type="checkbox" value="Sab"> Sab</label>
+                                <label><input type="checkbox" value="Dom"> Dom</label>
+                                <label><input type="checkbox" value="Exc"> Exc</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-save" style="width:100%; padding:10px; background:var(--azul-turquesa); color:white; border:none; cursor:pointer; font-weight:bold; border-radius:4px;">
+                            <i class="fas fa-save"></i> Salvar Programa
+                        </button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer style="text-align:center; padding: 15px; font-weight:bolder; font-size:18px; background: var(--branco-puro); border-top: 1px solid #ddd;">
+        <h5>Created by <span style="font-weight:bolder;">Barriguda</span> <span style="color:var(--laranja-vibrante);">Web TV</span></h5>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

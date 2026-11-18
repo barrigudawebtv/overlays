@@ -1,0 +1,6 @@
+fundo001 - 49661aff
+fundo002 - 668333ff
+fundo003 - 2d4b00ff
+=============================
+Orientação - -78,00
+deslocamento do Ponto - 1.00

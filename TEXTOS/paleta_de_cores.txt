@@ -1,0 +1,6 @@
+#007057ff - background 1
+#00834dff - background 2
+#00981aff - background 3
+
+#ff7f2bff - Legenda Barriguda
+#ff6600ff - Caixa de Texto

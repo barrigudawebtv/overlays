@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Listas de Transmissão Profissional</title>
+    <style>
+        /* CSS GERAL PARA A INTERFACE DO USUÁRIO */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: #2d3748;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Área de controle (escondida ao imprimir) */
+        .controls {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .controls h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: #3182ce;
+        }
+
+        #itemInput {
+            flex: 2;
+        }
+
+        #itemDesc {
+            flex: 3;
+        }
+
+        #itemCat {
+            flex: 1.5;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add {
+            background-color: #3182ce;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background-color: #2b6cb0;
+        }
+
+        .btn-print {
+            background-color: #48bb78;
+            color: white;
+            width: 100%;
+            font-size: 16px;
+            padding: 14px;
+            margin-top: 15px;
+        }
+
+        .btn-print:hover {
+            background-color: #38a169;
+        }
+
+        /* DESIGN DA LISTA VISÍVEL / IMPRESSÃO */
+        .preview-area {
+            border: 1px solid #e2e8f0;
+            padding: 30px;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .header-preview {
+            border-bottom: 3px solid #3182ce;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .editable-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1a202c;
+            border: none;
+            width: 100%;
+            outline: none;
+            margin-bottom: 5px;
+        }
+
+        .editable-subtitle {
+            font-size: 14px;
+            color: #718096;
+            border: none;
+            width: 100%;
+            outline: none;
+        }
+
+        .category-block {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            background-color: #2d3748;
+            color: #ffffff;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf2f7;
+            position: relative;
+        }
+
+        .item-row:hover .delete-item {
+            display: inline-block;
+        }
+
+        .checkbox-box {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #718096;
+            border-radius: 4px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .item-text {
+            flex-grow: 1;
+        }
+
+        .item-title-display {
+            font-weight: bold;
+            font-size: 15px;
+            color: #2d3748;
+        }
+
+        .item-desc-display {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .delete-item {
+            display: none;
+            background: none;
+            color: #e53e3e;
+            font-size: 13px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .delete-item:hover {
+            background-color: #fff5f5;
+        }
+
+        /* REGRAS ESPECÍFICAS DE IMPRESSÃO (CSS PRINT) */
+        @media print {
+            body {
+                background-color: #ffffff;
+                color: #000000;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .controls, .delete-item {
+                display: none !important; /* Esconde botões e painel de controle no PDF final */
+            }
+
+            .preview-area {
+                border: none;
+                padding: 0;
+            }
+
+            .category-block {
+                page-break-inside: avoid; /* Impede que uma categoria quebre no meio do papel */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="controls">
+        <h2>Adicionar Item à Lista</h2>
+        <div class="input-row">
+            <input type="text" id="itemInput" placeholder="Ex: Câmera Principal (Webcam / DSLR)" autofocus>
+            <input type="text" id="itemDesc" placeholder="Descrição (Ex: Captação em 1080p a 60fps)">
+        </div>
+        <div class="input-row">
+            <select id="itemCat">
+                <option value="Computador e Rede">💻 Computador e Rede</option>
+                <option value="Áudio Profissional">🎙️ Áudio Profissional</option>
+                <option value="Vídeo e Imagem">🎥 Vídeo e Imagem</option>
+                <option value="Iluminação e Cenário">💡 Iluminação e Cenário</option>
+            </select>
+            <button class="btn-add" onclick="addNewItem()">Adicionar</button>
+        </div>
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimir ou Salvar como PDF</button>
+    </div>
+
+    <div class="preview-area">
+        <div class="header-preview">
+            <input type="text" class="editable-title" value="CHECKLIST DE EQUIPAMENTOS">
+            <input type="text" class="editable-subtitle" value="Lista de conferência técnica para transmissões e gravações profissionais.">
+        </div>
+
+        <div id="categoriesContainer">
+            </div>
+    </div>
+</div>
+
+<script>
+    // Banco de dados inicial com os itens que você pediu
+    let items = [
+        { title: "Computador Principal (PC / Laptop)", desc: "Mínimo Core i5/i7, 16GB RAM e Placa de vídeo dedicada.", category: "Computador e Rede" },
+        { title: "Cabo de Rede (Ethernet)", desc: "Ligação direta ao roteador para evitar quedas.", category: "Computador e Rede" },
+        { title: "Placa de Captura de Vídeo", desc: "Para conectar câmeras profissionais ou consoles via HDMI.", category: "Computador e Rede" },
+        
+        { title: "Microfone (USB ou XLR)", desc: "Microfone dinâmico ou condensador para voz limpa.", category: "Áudio Profissional" },
+        { title: "Fones de Ouvido / Headset", desc: "Retorno fechado para evitar vazamento de áudio.", category: "Áudio Profissional" },
+        
+        { title: "Câmera Principal (Webcam ou Mirrorless)", desc: "Enquadrada ao nível dos olhos em 1080p.", category: "Vídeo e Imagem" },
+        
+        { title: "Iluminação Principal (Softbox / Ring Light)", desc: "Luz difusa direcionada ao rosto para retirar sombras.", category: "Iluminação e Cenário" }
+    ];
+
+    function renderList() {
+        const container = document.getElementById('categoriesContainer');
+        container.innerHTML = '';
+
+        // Agrupar itens por categoria
+        const grouped = {};
+        items.forEach((item, index) => {
+            if (!grouped[item.category]) {
+                grouped[item.category] = [];
+            }
+            grouped[item.category].push({ ...item, originalIndex: index });
+        });
+
+        // Gerar o HTML das categorias e itens
+        for (const cat in grouped) {
+            const catBlock = document.createElement('div');
+            catBlock.className = 'category-block';
+
+            const catTitle = document.createElement('div');
+            catTitle.className = 'category-title';
+            catTitle.innerText = cat;
+            catBlock.appendChild(catTitle);
+
+            grouped[cat].forEach(item => {
+                const itemRow = document.createElement('div');
+                itemRow.className = 'item-row';
+                itemRow.innerHTML = `
+                    <div class="checkbox-box"></div>
+                    <div class="item-text">
+                        <div class="item-title-display">${item.title}</div>
+                        ${item.desc ? `<div class="item-desc-display">${item.desc}</div>` : ''}
+                    </div>
+                    <button class="delete-item" onclick="removeItem(${item.originalIndex})">Excluir</button>
+                `;
+                catBlock.appendChild(itemRow);
+            });
+
+            container.appendChild(catBlock);
+        }
+    }
+
+    function addNewItem() {
+        const titleInput = document.getElementById('itemInput');
+        const descInput = document.getElementById('itemDesc');
+        const catSelect = document.getElementById('itemCat');
+
+        const title = titleInput.value.trim();
+        const desc = descInput.value.trim();
+        const category = catSelect.value;
+
+        if (title === '') {
+            alert('Insira o título do equipamento!');
+            return;
+        }
+
+        items.push({ title, desc, category });
+        renderList();
+
+        // Limpa campos
+        titleInput.value = '';
+        descInput.value = '';
+        titleInput.focus();
+    }
+
+    function removeItem(index) {
+        items.splice(index, 1);
+        renderList();
+    }
+
+    // Inicializar lista
+    renderList();
+</script>
+
+</body>
+</html>

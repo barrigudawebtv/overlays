@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criador de Listas em PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-add {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-add:active {
+            transform: scale(0.98);
+        }
+
+        ul {
+            list-style: none;
+            margin-bottom: 24px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        li {
+            background-color: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #edf2f7;
+        }
+
+        .btn-delete {
+            background-color: transparent;
+            color: #e74c3c;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
+
+        .btn-delete:hover {
+            color: #c0392b;
+            background-color: #fce4e4;
+        }
+
+        .btn-pdf {
+            background-color: #2ecc71;
+            color: white;
+            width: 100%;
+            padding: 14px;
+        }
+
+        .btn-pdf:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-pdf:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Minha Lista</h1>
+    <p class="subtitle">Adicione os itens e baixe em formato PDF</p>
+
+    <div class="input-group">
+        <input type="text" id="itemInput" placeholder="Digite um item..." autofocus>
+        <button class="btn-add" onclick="addItem()">Adicionar</button>
+    </div>
+
+    <ul id="listaItens">
+        </ul>
+
+    <button class="btn-pdf" onclick="generatePDF()">Gerar e Baixar PDF</button>
+</div>
+
+<script>
+    const items = [];
+    const itemInput = document.getElementById('itemInput');
+    const listaItens = document.getElementById('listaItens');
+
+    // Escuta a tecla Enter para facilitar a digitação
+    itemInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            addItem();
+        }
+    });
+
+    function addItem() {
+        const text = itemInput.value.trim();
+        if (text === '') return;
+
+        items.push(text);
+        renderList();
+        itemInput.value = '';
+        itemInput.focus();
+    }
+
+    function removeItem(index) {
+        items.splice(index, 1);
+        renderList();
+    }
+
+    function renderList() {
+        listaItens.innerHTML = '';
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span>${index + 1}. ${item}</span>
+                <button class="btn-delete" onclick="removeItem(${index})">Excluir</button>
+            `;
+            listaItens.appendChild(li);
+        });
+    }
+
+    function generatePDF() {
+        if (items.length === 0) {
+            alert('Adicione pelo menos um item à lista antes de gerar o PDF!');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Configuração estética do PDF
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(44, 62, 80); // Cor #2c3e50
+        doc.text("Lista de Tarefas / Itens", 20, 20);
+
+        // Linha divisória
+        doc.setDrawColor(189, 195, 199);
+        doc.line(20, 25, 190, 25);
+
+        // Renderizar os itens no PDF
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(14);
+        doc.setTextColor(51, 51, 51);
+
+        let yPosition = 40;
+        items.forEach((item, index) => {
+            // Se a lista for muito longa, cria uma nova página
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            doc.text(`${index + 1}. ${item}`, 20, yPosition);
+            yPosition += 10; // Espaçamento entre as linhas
+        });
+
+        // Salva o PDF gerado
+        doc.save("minha-lista.pdf");
+    }
+</script>
+
+</body>
+</html>

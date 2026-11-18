@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920,height=1080,initial-scale=1.0">
+<title>OBS — Overlay de Enquadramento 16:9</title>
+
+<style>
+    /*
+      OVERLAY PARA OBS STUDIO
+      Fundo totalmente transparente.
+      Resolução de referência: 1920x1080
+    */
+
+    :root {
+        --green: #00ff3c;
+        --line: 4px;
+        --grid-line: 2px;
+        --opacity: 1;
+        --safe-opacity: .55;
+        --center-size: 32px;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent !important;
+    }
+
+    body {
+        position: relative;
+    }
+
+    /*
+      Container principal.
+      Mantém exatamente a proporção 16:9.
+    */
+    .overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        aspect-ratio: 16 / 9;
+        pointer-events: none;
+    }
+
+    /*
+      Moldura externa 16:9.
+    */
+    .frame {
+        position: absolute;
+        inset: 0;
+        border: var(--line) solid var(--green);
+        opacity: var(--opacity);
+        filter: drop-shadow(0 0 5px rgba(0,255,60,.55));
+    }
+
+    /*
+      REGRA DOS TERÇOS
+    */
+    .thirds {
+        position: absolute;
+        inset: 0;
+        opacity: var(--opacity);
+    }
+
+    .thirds .vertical,
+    .thirds .horizontal {
+        position: absolute;
+        background: var(--green);
+        box-shadow: 0 0 4px rgba(0,255,60,.45);
+    }
+
+    .thirds .vertical {
+        top: 0;
+        bottom: 0;
+        width: var(--grid-line);
+    }
+
+    .thirds .vertical.left {
+        left: 33.333333%;
+    }
+
+    .thirds .vertical.right {
+        left: 66.666666%;
+    }
+
+    .thirds .horizontal {
+        left: 0;
+        right: 0;
+        height: var(--grid-line);
+    }
+
+    .thirds .horizontal.top {
+        top: 33.333333%;
+    }
+
+    .thirds .horizontal.bottom {
+        top: 66.666666%;
+    }
+
+    /*
+      SAFE AREA
+      Área recomendada para manter rosto/textos dentro
+      de uma região mais segura do enquadramento.
+    */
+    .safe-area {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        top: 5%;
+        bottom: 5%;
+        border: 2px dashed var(--green);
+        opacity: var(--safe-opacity);
+    }
+
+    /*
+      MARCADOR CENTRAL
+    */
+    .center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--center-size);
+        height: var(--center-size);
+        transform: translate(-50%, -50%);
+        opacity: var(--opacity);
+    }
+
+    .center::before,
+    .center::after {
+        content: "";
+        position: absolute;
+        background: var(--green);
+        box-shadow: 0 0 4px rgba(0,255,60,.5);
+    }
+
+    .center::before {
+        width: 100%;
+        height: 2px;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .center::after {
+        width: 2px;
+        height: 100%;
+        left: 50%;
+        top: 0;
+        transform: translateX(-50%);
+    }
+
+    /*
+      Pequeno círculo no centro para facilitar o alinhamento.
+    */
+    .center-dot {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 5px rgba(0,255,60,.8);
+    }
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+
+    <!-- Moldura 16:9 -->
+    <div class="frame"></div>
+
+    <!-- Regra dos terços -->
+    <div class="thirds">
+        <div class="vertical left"></div>
+        <div class="vertical right"></div>
+        <div class="horizontal top"></div>
+        <div class="horizontal bottom"></div>
+    </div>
+
+    <!-- Área de segurança -->
+    <div class="safe-area"></div>
+
+    <!-- Cruz central -->
+    <div class="center">
+        <div class="center-dot"></div>
+    </div>
+
+</div>
+
+<script>
+/*
+ * Configuração rápida.
+ *
+ * Pode alterar estes valores pelo console do navegador
+ * ou diretamente no CSS:
+ *
+ * --green       = cor das linhas
+ * --line        = espessura da moldura
+ * --grid-line   = espessura da grade
+ * --opacity     = opacidade geral
+ * --safe-opacity= opacidade da Safe Area
+ */
+
+const root = document.documentElement;
+
+/*
+ * Permite controlar a cor através da URL.
+ *
+ * Exemplo:
+ * ?color=00ff00
+ */
+const params = new URLSearchParams(window.location.search);
+
+if (params.has("color")) {
+    let color = params.get("color").replace("#", "");
+
+    if (/^[0-9a-fA-F]{6}$/.test(color)) {
+        root.style.setProperty("--green", "#" + color);
+    }
+}
+
+/*
+ * Espessura da moldura:
+ * ?line=4
+ */
+if (params.has("line")) {
+    const line = Number(params.get("line"));
+
+    if (line >= 1 && line <= 20) {
+        root.style.setProperty("--line", line + "px");
+    }
+}
+
+/*
+ * Opacidade:
+ * ?opacity=0.8
+ */
+if (params.has("opacity")) {
+    const opacity = Number(params.get("opacity"));
+
+    if (opacity >= 0 && opacity <= 1) {
+        root.style.setProperty("--opacity", opacity);
+    }
+}
+</script>
+
+</body>
+</html>
